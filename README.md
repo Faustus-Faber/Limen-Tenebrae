@@ -1,10 +1,10 @@
-# Limen Tenebrae: An Interactive Black Hole Simulator
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/46db109c-67ed-4779-97ac-ea527f74a0ec" /># Limen Tenebrae: An Interactive Black Hole Simulator
 
 **Limen Tenebrae** is a real-time, interactive 3D simulation of a solar system, its destruction, and the birth of a black hole. Built with Python and OpenGL, this project visualizes complex astrophysical concepts, including gravitational physics, stellar evolution, and the dramatic effects of a singularity. Users can explore a dynamic solar system, trigger cataclysmic events like supernovae, and pilot a spaceship through the cosmos to witness the spectacle from any angle.
 
 
 
-![Artist's conception of a black hole](https://www.space.com/black-holes-event-horizon-explained.html)
+![Artist's conception of a black hole](https://www.space.com/black-holes-create-dark-energy-first-evidence)
 
 
 ---
