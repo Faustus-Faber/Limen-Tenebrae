@@ -4,7 +4,7 @@
 
 
 
-![Artist's conception of a black hole](https://www.space.com/black-holes-create-dark-energy-first-evidence)
+![Artist's conception of a black hole](https://www.unistellar.com/wp-content/uploads/2023/08/BH_labeled-scaled.jpeg)
 
 
 ---
