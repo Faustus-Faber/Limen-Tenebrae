@@ -4,7 +4,7 @@
 
 
 
-![Artist's conception of a black hole](https://www.nasa.gov/wp-content/uploads/2023/05/cygx1-blackhole.jpg)
+![Artist's conception of a black hole](https://www.space.com/black-holes-event-horizon-explained.html)
 
 
 ---
