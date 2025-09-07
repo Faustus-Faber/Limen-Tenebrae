@@ -2075,7 +2075,9 @@ def mouse_listener(button, state, x, y):
 def idle():
     """Idle function for continuous updates"""
     global current_time, last_time
-    
+
+    if game_state == GAME_STATE_MENU:
+        draw_start_menu()
     if game_state == GAME_STATE_SIMULATION:
         current_time = time.time()
         dt = current_time - last_time
