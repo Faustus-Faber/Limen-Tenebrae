@@ -577,6 +577,151 @@ def draw_star_destroyer():
     glPopMatrix()
 
 # ============================================================================
+# FARHAN ZARIF - FEATURE 4: BLACK HOLE VISUAL EFFECTS
+# (Photon Ring, Accretion Disk, Gravitational Lensing)
+# ============================================================================
+
+def draw_simulation_black_hole():
+    """Draw black hole with event horizon and accretion disk using allowed OpenGL functions"""
+    if black_hole_alpha <= 0.0:
+        return
+        
+    glPushMatrix()
+    glTranslatef(black_hole_position[0], black_hole_position[1], black_hole_position[2])
+    
+    draw_accretion_disk()
+    draw_photon_ring()
+    
+    glColor3f(0.0, 0.0, 0.0)
+    quadric = gluNewQuadric()
+    gluSphere(quadric, BLACK_HOLE_VISUAL_RADIUS, 32, 32)
+    draw_black_hole_glow()
+    
+    glPopMatrix()
+
+def draw_accretion_disk():
+    """Draw rotating accretion disk with Interstellar-style appearance"""
+    global accretion_disk_rotation
+    
+    accretion_disk_rotation += ACCRETION_DISK_ROTATION_SPEED
+    
+    inner_radius = BLACK_HOLE_VISUAL_RADIUS * 2.5  
+    outer_radius = BLACK_HOLE_VISUAL_RADIUS * 6.0  
+    segments = 128  
+    rings = 24
+    
+    cam_dir = normalize_vector(np.array([
+        camera_state['distance'] * math.cos(math.radians(camera_state['elevation'])) * math.cos(math.radians(camera_state['azimuth'])),
+        camera_state['distance'] * math.cos(math.radians(camera_state['elevation'])) * math.sin(math.radians(camera_state['azimuth'])),
+        camera_state['distance'] * math.sin(math.radians(camera_state['elevation']))
+    ]))
+    
+    for ring in range(rings):
+        radius1 = inner_radius + (outer_radius - inner_radius) * ring / rings
+        radius2 = inner_radius + (outer_radius - inner_radius) * (ring + 1) / rings
+        
+        glBegin(GL_QUADS)
+        for i in range(segments):
+            angle1 = 2.0 * math.pi * i / segments + math.radians(accretion_disk_rotation)
+            angle2 = 2.0 * math.pi * (i + 1) / segments + math.radians(accretion_disk_rotation)
+            cos_a1 = math.cos(angle1)
+            sin_a1 = math.sin(angle1)
+            cos_a2 = math.cos(angle2)
+            sin_a2 = math.sin(angle2)
+            
+            orbital_speed = 0.3 
+            velocity = np.array([-orbital_speed * sin_a1, orbital_speed * cos_a1, 0.0])
+            
+            doppler_factor = max(0.2, 1.0 + np.dot(velocity, cam_dir) * 0.8)
+            
+            t = ring / rings
+            if t < 0.3:
+                base_color = lerp_color((1.0, 1.0, 0.9), (1.0, 0.9, 0.3), t / 0.3)
+            elif t < 0.7:
+                base_color = lerp_color((1.0, 0.9, 0.3), (1.0, 0.5, 0.1), (t - 0.3) / 0.4)
+            else:
+                base_color = lerp_color((1.0, 0.5, 0.1), (0.6, 0.1, 0.0), (t - 0.7) / 0.3)
+            
+            distance_factor = 1.2 - (t * 0.8) 
+            color = tuple(min(1.0, c * doppler_factor * distance_factor) for c in base_color)
+            
+            turbulence = 0.7 + 0.3 * math.sin(angle1 * 4.0 + accretion_disk_rotation * 0.15)
+            flicker = 0.9 + 0.1 * math.sin(angle1 * 8.0 + accretion_disk_rotation * 0.3)
+            final_color = tuple(min(1.0, c * turbulence * flicker) for c in color)
+            
+            glColor3f(final_color[0], final_color[1], final_color[2])
+            glVertex3f(radius1 * cos_a1, radius1 * sin_a1, 0.0)
+            glVertex3f(radius2 * cos_a1, radius2 * sin_a1, 0.0)
+            glVertex3f(radius2 * cos_a2, radius2 * sin_a2, 0.0)
+            glVertex3f(radius1 * cos_a2, radius1 * sin_a2, 0.0)
+        
+        glEnd()
+    
+def draw_photon_ring():
+    """Draw bright photon ring using allowed OpenGL functions"""
+    photon_radius = BLACK_HOLE_VISUAL_RADIUS * 1.5
+    segments = 128
+    
+    for ring_layer in range(3):
+        inner_radius = photon_radius + ring_layer * 1.0
+        outer_radius = inner_radius + 0.5
+        
+        intensity = 1.0 - ring_layer * 0.3
+        glColor3f(intensity, intensity * 0.9, intensity * 0.6)
+        
+        glBegin(GL_QUADS)
+        for i in range(segments):
+            angle1 = 2.0 * math.pi * i / segments
+            angle2 = 2.0 * math.pi * (i + 1) / segments
+            
+            cos_a1 = math.cos(angle1)
+            sin_a1 = math.sin(angle1)
+            cos_a2 = math.cos(angle2)
+            sin_a2 = math.sin(angle2)
+            
+            glVertex3f(inner_radius * cos_a1, inner_radius * sin_a1, 0.0)
+            glVertex3f(outer_radius * cos_a1, outer_radius * sin_a1, 0.0)
+            glVertex3f(outer_radius * cos_a2, outer_radius * sin_a2, 0.0)
+            glVertex3f(inner_radius * cos_a2, inner_radius * sin_a2, 0.0)
+        glEnd()
+
+def draw_black_hole_glow():
+    """Draw black hole glow using allowed OpenGL functions"""
+    if black_hole_alpha <= 0.0:
+        return
+    
+    for glow_layer in range(6):
+        inner_radius = BLACK_HOLE_VISUAL_RADIUS * (1.1 + glow_layer * 0.15)
+        outer_radius = BLACK_HOLE_VISUAL_RADIUS * (1.3 + glow_layer * 0.2)
+        
+        intensity = 0.8 - (glow_layer * 0.12)
+        
+        if glow_layer < 2:
+            glColor3f(intensity, intensity * 0.6, intensity * 0.2)
+        elif glow_layer < 4:
+            glColor3f(intensity * 0.9, intensity * 0.5, intensity * 0.15)
+        else:
+            glColor3f(intensity * 0.7, intensity * 0.3, intensity * 0.1)
+        
+        segments = 64
+        
+        glBegin(GL_QUADS)
+        for i in range(segments):
+            angle1 = 2.0 * math.pi * i / segments
+            angle2 = 2.0 * math.pi * (i + 1) / segments
+            
+            cos_a1 = math.cos(angle1)
+            sin_a1 = math.sin(angle1)
+            cos_a2 = math.cos(angle2)
+            sin_a2 = math.sin(angle2)
+            
+            glVertex3f(inner_radius * cos_a1, inner_radius * sin_a1, 0.0)
+            glVertex3f(outer_radius * cos_a1, outer_radius * sin_a1, 0.0)
+            glVertex3f(outer_radius * cos_a2, outer_radius * sin_a2, 0.0)
+            glVertex3f(inner_radius * cos_a2, inner_radius * sin_a2, 0.0)
+        glEnd()
+    
+# ============================================================================
 # KEYBOARD & MOUSE FUNCTIONS
 # ============================================================================
 
