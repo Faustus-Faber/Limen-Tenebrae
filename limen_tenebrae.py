@@ -73,6 +73,42 @@ PLANET_DATA = [
     ["Uranus", 40.0, 8.0, 500.0, (0.0, 1.0, 1.0), 27]
 ]
 
+# ============================================================================
+# GLOBAL VARIABLES
+# ============================================================================
+
+# SHAHID GALIB - VISUAL FOUNDATION & SOLAR SYSTEM VARIABLES
+last_time = 0.0
+current_time = 0.0
+is_solar_system_active = True
+sun_exists = True
+sun_position = np.array([0.0, 0.0, 0.0])
+planets = []
+selected_planet_index = 0
+starfield = []
+camera_state = {
+    'target': np.array([0.0, 0.0, 0.0]),
+    'distance': 200.0,
+    'azimuth': 0.0,
+    'elevation': 30.0,
+    'is_following_planet': False
+}
+spaceship_exists = False
+spaceship_position = np.array([0.0, 0.0, 200.0])
+spaceship_velocity = np.array([0.0, 0.0, 0.0])
+spaceship_rotation = np.array([0.0, 0.0, 0.0])
+spaceship_scale = 4.0
+spaceship_physics_mode = True
+camera_mode = 0
+spaceship_thrust = 200.0
+spaceship_max_speed = 100.0
+spaceship_collision_radius = 8.0
+camera_transition_active = False
+camera_transition_start = 0.0
+camera_transition_duration = 0.6
+camera_start_pos = np.array([0.0, 0.0, 0.0])
+camera_start_target = np.array([0.0, 0.0, 0.0])
+
 def show_screen():
   pass
 def keyboard_listener():
