@@ -1379,7 +1379,11 @@ def show_screen():
 
         draw_star_destroyer()
         
-    
+        if is_black_hole_active:
+            draw_simulation_black_hole()
+            
+        if debris_particles:
+            draw_debris()
     glutSwapBuffers()
 
 def main():
