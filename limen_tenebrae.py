@@ -121,6 +121,13 @@ camera_transition_duration = 0.6
 camera_start_pos = np.array([0.0, 0.0, 0.0])
 camera_start_target = np.array([0.0, 0.0, 0.0])
 
+# FARHAN ZARIF - BLACK HOLE PHYSICS & EFFECTS VARIABLES
+is_black_hole_active = False
+black_hole_position = np.array([0.0, 0.0, 0.0])
+black_hole_mass = BLACK_HOLE_MASS
+black_hole_alpha = 0.0
+accretion_disk_rotation = 0.0
+
 # ============================================================================
 # UTILITY FUNCTIONS
 # ============================================================================
