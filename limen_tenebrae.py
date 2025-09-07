@@ -43,6 +43,24 @@ import numpy as np
 # • Feature 8: Free-Floating Physics (P key: Collision preset with Sun removal)
 # • Feature 9: Collision Detection & Rebound (Realistic planet-to-planet interactions)
 # ============================================================================
+# ============================================================================
+# TUNABLE CONSTANTS
+# ============================================================================
+
+# SHAHID GALIB - VISUAL FOUNDATION & SOLAR SYSTEM CONSTANTS
+WINDOW_WIDTH = 1000
+WINDOW_HEIGHT = 800
+STARFIELD_COUNT = 2000
+SUN_INITIAL_RADIUS = 20.0
+SUN_MASS = 1000.0
+GAME_STATE_MENU = 0
+GAME_STATE_SIMULATION = 1
+game_state = GAME_STATE_MENU
+mouse_x = 0
+mouse_y = 0
+start_button_hover = False
+MENU_MAIN = 0
+MENU_ABOUT = 1
 def show_screen():
   pass
 def keyboard_listener():
