@@ -129,16 +129,382 @@ def lerp_color(color1, color2, t):
     """Linear interpolation between two RGB colors"""
     return tuple(lerp(color1[i], color2[i], t) for i in range(3))
 
-def show_screen():
-  pass
-def keyboard_listener():
-  pass
-def special_key_listener():
-  pass
-def mouse_listener():
-  pass
-def idle():
-  pass
+# ============================================================================
+# SHAHID GALIB - FEATURE 1: WINDOW SETUP & STARFIELD BACKGROUND
+# ============================================================================
+
+def init_starfield():
+    """Initialize background starfield with 2000 random stars"""
+    global starfield
+    starfield = []
+    for _ in range(STARFIELD_COUNT):
+        theta = random.uniform(0, 2 * math.pi)
+        phi = random.uniform(0, math.pi)
+        r = random.uniform(1000, 2000)
+        
+        x = r * math.sin(phi) * math.cos(theta)
+        y = r * math.sin(phi) * math.sin(theta)
+        z = r * math.cos(phi)
+        
+        brightness = random.uniform(0.3, 1.0)
+        starfield.append([x, y, z, brightness])
+
+# ============================================================================
+# SHAHID GALIB - FEATURE 2: COMPLETE SOLAR SYSTEM (SUN + 8 PLANETS)
+# ============================================================================
+
+def init_planets():
+    """Initialize all planets with their orbital positions"""
+    global planets
+    planets = []
+    
+    for i, (name, mass, radius, orbital_radius, color, initial_angle) in enumerate(PLANET_DATA):
+        angle_rad = math.radians(initial_angle)
+        position = np.array([
+            orbital_radius * math.cos(angle_rad),
+            orbital_radius * math.sin(angle_rad),
+            0.0
+        ])
+        
+        if is_solar_system_active:
+            orbital_speed = math.sqrt(G * SUN_MASS / orbital_radius)
+            velocity = np.array([
+                -orbital_speed * math.sin(angle_rad),
+                orbital_speed * math.cos(angle_rad),
+                0.0
+            ])
+        else:
+            velocity = np.array([0.0, 0.0, 0.0])
+        
+        planet = {
+            'name': name,
+            'mass': mass,
+            'radius': radius,
+            'position': position,
+            'velocity': velocity,
+            'acceleration': np.array([0.0, 0.0, 0.0]),
+            'color': color,
+            'orbital_trail': [position.copy()],
+            'captured': False,
+            'spaghettified': False,
+            'spaghetti_factor': 1.0
+        }
+        planets.append(planet)
+
+def init_simulation():
+    """Initialize the entire simulation"""
+    global last_time
+    init_starfield()
+    init_planets()
+    last_time = time.time()
+
+
+# ============================================================================
+# DRAWING FUNCTIONS
+# ============================================================================
+
+# SHAHID GALIB - FEATURE 1: STARFIELD BACKGROUND
+def draw_starfield():
+    """Draw background starfield (2000 stars)"""
+    glPointSize(1.0)
+    glBegin(GL_POINTS)
+    
+    for star in starfield:
+        x, y, z, brightness = star
+        glColor3f(brightness, brightness, brightness)
+        glVertex3f(x, y, z)
+    
+    glEnd()
+
+# ============================================================================
+# SHAHID GALIB - FEATURE 3: ORBITAL CAMERA SYSTEM & SPACESHIP MECHANICS
+# (Spherical Coordinates, Camera Transitions, Spaceship Controls, Interactive Navigation)
+# ============================================================================
+
+def setup_camera():
+    """Setup camera using spherical coordinates or spaceship perspectives with smooth transitions"""
+    glMatrixMode(GL_PROJECTION)
+    glLoadIdentity()
+    gluPerspective(60.0, 1.25, 0.1, 5000.0)
+    
+    glMatrixMode(GL_MODELVIEW)
+    glLoadIdentity()
+
+    def spherical_to_cartesian(state):
+        azimuth_rad = math.radians(state['azimuth'])
+        elevation_rad = math.radians(state['elevation'])
+        distance = state['distance']
+        cam_x = distance * math.cos(elevation_rad) * math.cos(azimuth_rad)
+        cam_y = distance * math.cos(elevation_rad) * math.sin(azimuth_rad)
+        cam_z = distance * math.sin(elevation_rad)
+        target = state['target']
+        return np.array([cam_x + target[0], cam_y + target[1], cam_z + target[2]]), target.copy()
+
+    if camera_mode == 0 or not spaceship_exists:
+        desired_pos, desired_target = spherical_to_cartesian(camera_state)
+    else:
+        yaw = math.radians(spaceship_rotation[1])
+        pitch = math.radians(spaceship_rotation[0])
+        forward = np.array([math.cos(yaw) * math.cos(pitch), math.sin(yaw) * math.cos(pitch), math.sin(pitch)])
+        up = np.array([0.0, 0.0, 1.0])
+        if camera_mode == 1:
+            desired_pos = spaceship_position - forward * (spaceship_scale * 8.0) + up * (spaceship_scale * 3.0)
+            desired_target = spaceship_position + forward * (spaceship_scale * 6.0)
+        else:
+            desired_pos = spaceship_position + forward * (spaceship_scale * 1.2) + up * (spaceship_scale * 0.4)
+            desired_target = desired_pos + forward * (spaceship_scale * 20.0)
+
+    global camera_transition_active, camera_transition_start, camera_start_pos, camera_start_target, camera_transition_duration
+    if camera_transition_active:
+        t = (time.time() - camera_transition_start) / max(0.001, camera_transition_duration)
+        if t >= 1.0:
+            camera_transition_active = False
+            curr_pos = desired_pos
+            curr_target = desired_target
+        else:
+            curr_pos = lerp(camera_start_pos, desired_pos, t)
+            curr_target = lerp(camera_start_target, desired_target, t)
+    else:
+        curr_pos = desired_pos
+        curr_target = desired_target
+
+    gluLookAt(curr_pos[0], curr_pos[1], curr_pos[2],
+              curr_target[0], curr_target[1], curr_target[2],
+              0.0, 0.0, 1.0)
+
+# SHAHID GALIB - FEATURE 2: SOLAR SYSTEM (SUN + 8 PLANETS)
+def draw_sun():
+    """Draw the Sun as a glowing yellow sphere or red giant"""
+    glPushMatrix()
+    
+    glTranslatef(sun_position[0], sun_position[1], sun_position[2])
+    
+    if is_red_giant_active:
+        glColor3f(1.0, 0.3, 0.1)
+        radius = current_sun_radius
+    else:
+        glColor3f(1.0, 1.0, 0.0)
+        radius = 30.0
+    
+    quadric = gluNewQuadric()
+    gluSphere(quadric, radius, 20, 20)
+    
+    glPopMatrix()
+
+def draw_planets():
+    """Draw all planets with trails and Saturn's rings"""
+    for i, planet in enumerate(planets):
+        if planet['captured'] or is_planet_engulfed(planet):
+            continue
+            
+        glColor3f(0.3, 0.3, 0.3)
+        glPointSize(1.0)
+        glBegin(GL_POINTS)
+        for trail_pos in planet['orbital_trail'][-100:]:  # Last 100 positions
+            glVertex3f(trail_pos[0], trail_pos[1], trail_pos[2])
+        glEnd()
+        
+
+def draw_saturn_rings(planet_radius):
+    """Draw Saturn's rings using GL_QUADS"""
+    glColor3f(0.8, 0.8, 0.6) 
+    
+    inner_radius = planet_radius * 1.5
+    outer_radius = planet_radius * 2.5
+    segments = 32
+    
+    glBegin(GL_QUADS)
+    for i in range(segments):
+        angle1 = 2.0 * math.pi * i / segments
+        angle2 = 2.0 * math.pi * (i + 1) / segments
+        cos_a1 = math.cos(angle1)
+        sin_a1 = math.sin(angle1)
+        cos_a2 = math.cos(angle2)
+        sin_a2 = math.sin(angle2)
+        
+        glVertex3f(inner_radius * cos_a1, inner_radius * sin_a1, 0.0)
+        glVertex3f(outer_radius * cos_a1, outer_radius * sin_a1, 0.0)
+        glVertex3f(outer_radius * cos_a2, outer_radius * sin_a2, 0.0)
+        glVertex3f(inner_radius * cos_a2, inner_radius * sin_a2, 0.0)
+    
+    glEnd()
+
+def request_camera_transition(new_mode):
+    global camera_mode, camera_transition_active, camera_transition_start, camera_start_pos, camera_start_target
+    camera_mode = new_mode
+    az = math.radians(camera_state['azimuth'])
+    el = math.radians(camera_state['elevation'])
+    dist = camera_state['distance']
+    cx = dist * math.cos(el) * math.cos(az) + camera_state['target'][0]
+    cy = dist * math.cos(el) * math.sin(az) + camera_state['target'][1]
+    cz = dist * math.sin(el) + camera_state['target'][2]
+    camera_start_pos = np.array([cx, cy, cz])
+    camera_start_target = camera_state['target'].copy()
+    camera_transition_active = True
+    camera_transition_start = time.time()
+
+
+def spawn_spaceship_near_selected_planet():
+    global spaceship_exists, spaceship_position, spaceship_velocity, spaceship_rotation, G
+    if not planets:
+        return
+    idx = max(0, min(len(planets) - 1, selected_planet_index))
+    planet = planets[idx]
+    dir_vec = planet['position'] - sun_position
+    dir_norm = normalize_vector(dir_vec) if np.linalg.norm(dir_vec) > 0 else np.array([1.0, 0.0, 0.0])
+    offset = dir_norm * (planet['radius'] * 3.0 + 20.0)
+    spaceship_position = planet['position'] + offset + np.array([0.0, 0.0, planet['radius'] * 0.5 + 5.0])
+    tangent = np.array([-dir_norm[1], dir_norm[0], 0.0])
+    yaw = math.degrees(math.atan2(tangent[1], tangent[0]))
+    spaceship_rotation = np.array([0.0, yaw, 0.0])
+    spaceship_velocity = np.array([0.0, 0.0, 0.0])
+    spaceship_exists = True
+    request_camera_transition(1)
+    print(f"Star Destroyer spawned near {planet['name']}")
+
+
+def update_spaceship(dt):
+    global spaceship_position, spaceship_velocity
+    if not spaceship_exists:
+        return
+
+    damping = 0.98
+    spaceship_velocity *= damping
+    
+    speed = np.linalg.norm(spaceship_velocity)
+    if speed > spaceship_max_speed:
+        spaceship_velocity = (spaceship_velocity / speed) * spaceship_max_speed
+
+    proposed = spaceship_position + spaceship_velocity * dt
+
+    for p in planets:
+        if p.get('captured', False) or is_planet_engulfed(p):
+            continue
+        to_ship = proposed - p['position']
+        dist = np.linalg.norm(to_ship)
+        min_dist = p['radius'] + spaceship_collision_radius
+        if dist < max(0.1, min_dist):
+            n = normalize_vector(to_ship if dist > 0 else np.array([1.0, 0.0, 0.0]))
+            proposed = p['position'] + n * min_dist
+            radial_v = np.dot(spaceship_velocity, n)
+            spaceship_velocity -= radial_v * n
+
+    if sun_exists:
+        to_ship = proposed - sun_position
+        dist = np.linalg.norm(to_ship)
+        min_dist = current_sun_radius + spaceship_collision_radius
+        if dist < max(0.1, min_dist):
+            n = normalize_vector(to_ship if dist > 0 else np.array([1.0, 0.0, 0.0]))
+            proposed = sun_position + n * min_dist
+            radial_v = np.dot(spaceship_velocity, n)
+            spaceship_velocity -= radial_v * n
+
+    if is_black_hole_active:
+        to_ship = proposed - black_hole_position
+        dist = np.linalg.norm(to_ship)
+        min_dist = BLACK_HOLE_VISUAL_RADIUS + spaceship_collision_radius
+        if dist < max(0.1, min_dist):
+            n = normalize_vector(to_ship if dist > 0 else np.array([1.0, 0.0, 0.0]))
+            proposed = black_hole_position + n * min_dist
+            radial_v = np.dot(spaceship_velocity, n)
+            spaceship_velocity -= radial_v * n
+
+    spaceship_position = proposed
+
+
+def draw_star_destroyer():
+    if not spaceship_exists:
+        return
+
+    glPushMatrix()
+    glTranslatef(spaceship_position[0], spaceship_position[1], spaceship_position[2])
+    glRotatef(spaceship_rotation[1], 0, 0, 1)
+    glRotatef(spaceship_rotation[0], 0, 1, 0)
+    glRotatef(spaceship_rotation[2], 1, 0, 0)
+    glScalef(spaceship_scale, spaceship_scale, spaceship_scale)
+
+    glColor3f(0.85, 0.85, 0.9)
+
+    hull_len = 1.2
+    hull_wid = 0.6
+    hull_hei = 0.12
+    segs = 10
+    z_top = hull_hei * 0.5
+    z_bot = -hull_hei * 0.5
+
+    for s in range(segs):
+        t1 = s / float(segs)
+        t2 = (s + 1) / float(segs)
+        x1 = -hull_len * (0.5 - t1)
+        x2 = -hull_len * (0.5 - t2)
+        w1 = hull_wid * (1.0 - 0.85 * t1)
+        w2 = hull_wid * (1.0 - 0.85 * t2)
+        glBegin(GL_QUADS)
+        glColor3f(0.82 - 0.02 * s, 0.82 - 0.02 * s, 0.86 - 0.02 * s)
+        glVertex3f(x1, -w1, z_top)
+        glVertex3f(x1,  w1, z_top)
+        glVertex3f(x2,  w2, z_top)
+        glVertex3f(x2, -w2, z_top)
+        glEnd()
+        glBegin(GL_QUADS)
+        glColor3f(0.75 - 0.02 * s, 0.75 - 0.02 * s, 0.8 - 0.02 * s)
+        glVertex3f(x1, -w1, z_bot)
+        glVertex3f(x2, -w2, z_bot)
+        glVertex3f(x2,  w2, z_bot)
+        glVertex3f(x1,  w1, z_bot)
+        glEnd()
+        glBegin(GL_QUADS)
+        glColor3f(0.7, 0.7, 0.75)
+        glVertex3f(x1, -w1, z_bot)
+        glVertex3f(x1, -w1, z_top)
+        glVertex3f(x2, -w2, z_top)
+        glVertex3f(x2, -w2, z_bot)
+        glEnd()
+        glBegin(GL_QUADS)
+        glColor3f(0.7, 0.7, 0.75)
+        glVertex3f(x1,  w1, z_bot)
+        glVertex3f(x2,  w2, z_bot)
+        glVertex3f(x2,  w2, z_top)
+        glVertex3f(x1,  w1, z_top)
+        glEnd()
+
+    glPushMatrix()
+    glTranslatef(hull_len * 0.15, 0.0, z_top + 0.03)
+    for i in range(4):
+        scale = 1.0 - i * 0.15
+        glColor3f(0.85, 0.85, 0.9)
+        glPushMatrix()
+        glScalef(hull_len * 0.5 * scale, hull_wid * 0.5 * scale, 0.06)
+        glutSolidCube(1.0)
+        glPopMatrix()
+        glTranslatef(hull_len * 0.03, 0.0, 0.025)
+    glPopMatrix()
+
+    glPushMatrix()
+    glTranslatef(hull_len * 0.25, 0.0, z_top + 0.12)
+    glScalef(0.3, 0.2, 0.15)
+    glutSolidCube(1.0)
+    glPopMatrix()
+
+    quad = gluNewQuadric()
+    glPushMatrix()
+    glTranslatef(hull_len * 0.3, 0.1, z_top + 0.21)
+    gluSphere(quad, 0.05, 10, 10)
+    glPopMatrix()
+    glPushMatrix()
+    glTranslatef(hull_len * 0.3, -0.1, z_top + 0.21)
+    gluSphere(quad, 0.05, 10, 10)
+    glPopMatrix()
+
+    glColor3f(0.6, 0.65, 0.75)
+    for yoff in [-0.2, 0.0, 0.2]:
+        glPushMatrix()
+        glTranslatef(-hull_len * 0.5 - 0.06, yoff, 0.0)
+        glRotatef(90, 0, 1, 0)
+        gluCylinder(gluNewQuadric(), 0.06, 0.06, 0.15, 10, 10)
+        glPopMatrix()
+
+    glPopMatrix()
 
 
 def main():
