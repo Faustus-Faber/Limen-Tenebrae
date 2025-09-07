@@ -625,6 +625,56 @@ def keyboard_listener(key, x, y):
 
 _index]['position'].copy()
                 print(f"Camera now following {planets[selected_planet_index]['name']}")
+# ============================================================================
+# MAIN DISPLAY AND LOOP FUNCTIONS
+# ============================================================================
+
+def idle():
+    """Idle function for continuous updates"""
+    global current_time, last_time
+    
+    if game_state == GAME_STATE_SIMULATION:
+        current_time = time.time()
+        dt = current_time - last_time
+        last_time = current_time
+        
+        max_dt = DT * 3.0
+        dt = min(dt, max_dt)
+        
+        accumulated_time = dt
+        while accumulated_time >= DT:
+            update_physics(DT)
+            handle_sequences(DT)
+            accumulated_time -= DT
+        
+        if accumulated_time > 0.001:
+            update_physics(accumulated_time)
+            handle_sequences(accumulated_time)
+    
+    glutPostRedisplay()
+
+def show_screen():
+    """Main display function"""
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+    glLoadIdentity()
+    glViewport(0, 0, 1000, 800)
+    
+    if game_state == GAME_STATE_SIMULATION:
+        setup_camera()
+        
+        draw_starfield()
+        
+        if sun_exists and is_solar_system_active:
+            draw_sun()
+        
+        if planets:
+            draw_planets()
+
+        draw_star_destroyer()
+        
+    
+    glutSwapBuffers()
+
 def main():
     """Main function to initialize and run the simulation"""
     glutInit()
@@ -642,6 +692,8 @@ def main():
     glutSpecialFunc(special_key_listener)
     glutMouseFunc(mouse_listener)
     glutIdleFunc(idle)
+    
+    init_simulation()
     
     glutMainLoop()
 
