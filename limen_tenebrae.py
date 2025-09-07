@@ -1779,7 +1779,24 @@ def special_key_listener(key, x, y):
             if camera_state['is_following_planet']:
                 camera_state['target'] = planets[selected_planet_index]['position'].copy()
                 print(f"Camera now following {planets[selected_planet_index]['name']}")
-                
+#Evan                
+def mouse_listener(button, state, x, y):
+    """Handle mouse clicks for menu navigation"""
+    global selected_planet_index, mouse_x, mouse_y
+    
+    mouse_x = x
+    mouse_y = y
+    
+    if game_state == GAME_STATE_MENU:
+        check_menu_button_hover(x, y)
+        glutPostRedisplay()
+        if button == GLUT_LEFT_BUTTON and state == GLUT_DOWN:
+            check_menu_button_click(x, y)
+    elif game_state == GAME_STATE_SIMULATION:
+        if button == GLUT_LEFT_BUTTON and state == GLUT_DOWN:
+            selected_planet_index = (selected_planet_index + 1) % len(planets)
+            print(f"Selected planet: {planets[selected_planet_index]['name']}")
+    glutPostRedisplay()
 # ============================================================================
 # MAIN DISPLAY AND LOOP FUNCTIONS
 # ============================================================================
