@@ -1486,6 +1486,129 @@ def capture_planet(planet):
             break
             
 # ============================================================================
+# EVAN YUVRAJ MUNSHI - FEATURE 8: Collision Detection and Rebound
+# ============================================================================
+
+def detect_planet_collisions():
+    """Detect collisions between all planet pairs"""
+    collisions = []
+    
+    for i in range(len(planets)):
+        for j in range(i + 1, len(planets)):
+            planet1 = planets[i]
+            planet2 = planets[j]
+            
+            if planet1['captured'] or planet2['captured']:
+                continue
+            
+            distance_vector = planet2['position'] - planet1['position']
+            distance = np.linalg.norm(distance_vector)
+            
+            collision_threshold = (planet1['radius'] + planet2['radius']) * COLLISION_THRESHOLD_MULTIPLIER
+            
+            if distance <= collision_threshold:
+                relative_velocity = planet2['velocity'] - planet1['velocity']
+                relative_speed = np.linalg.norm(relative_velocity)
+                
+                if relative_speed >= MIN_COLLISION_VELOCITY:
+                    if distance > 0:
+                        approach_direction = distance_vector / distance
+                        relative_velocity_component = np.dot(relative_velocity, approach_direction)
+                        
+                        if relative_velocity_component < 0: 
+                            collisions.append((i, j, distance_vector, distance))
+    
+    return collisions
+
+def resolve_collision(planet1, planet2, collision_vector, distance):
+    """Resolve collision between two planets using elastic collision physics"""
+    if distance > 0:
+        collision_normal = collision_vector / distance
+    else:
+        collision_normal = np.array([1.0, 0.0, 0.0])
+    relative_velocity = planet2['velocity'] - planet1['velocity']
+    
+    velocity_along_normal = np.dot(relative_velocity, collision_normal)
+    
+    if velocity_along_normal > 0:
+        return
+    
+    restitution = RESTITUTION_COEFFICIENT
+    
+    impulse_scalar = -(1 + restitution) * velocity_along_normal
+    impulse_scalar /= (1/planet1['mass'] + 1/planet2['mass'])
+    impulse = impulse_scalar * collision_normal
+    
+    planet1['velocity'] -= impulse / planet1['mass']
+    planet2['velocity'] += impulse / planet2['mass']
+    
+    overlap = (planet1['radius'] + planet2['radius']) * COLLISION_THRESHOLD_MULTIPLIER - distance
+    if overlap > 0:
+        total_mass = planet1['mass'] + planet2['mass']
+        separation_distance = overlap * 0.5 
+        
+        planet1_separation = separation_distance * (planet2['mass'] / total_mass)
+        planet2_separation = separation_distance * (planet1['mass'] / total_mass)
+        
+        planet1['position'] -= collision_normal * planet1_separation
+        planet2['position'] += collision_normal * planet2_separation
+
+def update_collision_physics():
+    """Update collision physics for all planets"""
+    collisions = detect_planet_collisions()
+    
+    for planet1_idx, planet2_idx, collision_vector, distance in collisions:
+        planet1 = planets[planet1_idx]
+        planet2 = planets[planet2_idx]
+        resolve_collision(planet1, planet2, collision_vector, distance)
+
+def setup_collision_rebound_preset():
+    """Set up guaranteed collision conditions for demonstrating rebound physics"""
+    global sun_exists, is_solar_system_active, is_black_hole_active, is_supernova_active
+    global sequence_stage, black_hole_alpha, keys_locked
+    
+    sun_exists = False
+    is_solar_system_active = False
+    is_black_hole_active = False
+    is_supernova_active = False
+    sequence_stage = 0
+    black_hole_alpha = 0.0
+    
+    if len(planets) >= 2:
+        planets[0]['position'] = np.array([-100.0, 0.0, 0.0])
+        planets[1]['position'] = np.array([100.0, 0.0, 0.0])
+        
+        planets[0]['velocity'] = np.array([15.0, 0.0, 0.0])  
+        planets[1]['velocity'] = np.array([-15.0, 0.0, 0.0])  
+        
+        if len(planets) >= 4:
+            planets[2]['position'] = np.array([0.0, -120.0, 0.0])
+            planets[3]['position'] = np.array([0.0, 120.0, 0.0])
+            planets[2]['velocity'] = np.array([0.0, 12.0, 0.0])  
+            planets[3]['velocity'] = np.array([0.0, -12.0, 0.0])  
+        
+        for i in range(4, len(planets)):
+            if not planets[i]['captured']:
+                angle = (i - 4) * (2 * math.pi / max(1, len(planets) - 4))
+                radius = 200.0
+                planets[i]['position'] = np.array([
+                    radius * math.cos(angle),
+                    radius * math.sin(angle),
+                    0.0
+                ])
+                planets[i]['velocity'] = np.array([
+                    -8.0 * math.cos(angle),
+                    -8.0 * math.sin(angle),
+                    0.0
+                ])
+    
+    camera_state['target'] = np.array([0.0, 0.0, 0.0])
+    
+    keys_locked = True
+    print("Collision rebound preset activated! Event keys locked until reset (R).")
+    camera_state['distance'] = 500.0
+    
+# ============================================================================
 # KEYBOARD & MOUSE FUNCTIONS
 # ============================================================================
 
