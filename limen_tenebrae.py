@@ -782,6 +782,181 @@ def draw_black_hole_glow():
         glEnd()
 
 # ============================================================================
+# EVAN YUVRAJ MUNSHI - FEATURE 7: SUPERNOVA EXPLOSION & DEBRIS SYSTEM
+# (Visual Effects, Particle Systems, Stellar Death Simulation)
+# ============================================================================
+
+def draw_supernova_explosion():
+    """Draw supernova explosion effect"""
+    if not supernova_particles:
+        return
+        
+    glPointSize(5.0)
+    glBegin(GL_POINTS)
+    
+    for particle in supernova_particles:
+        pos = particle['position']
+        age = particle['age']
+        lifetime = particle['lifetime']
+        
+        t = age / lifetime
+        if t < 0.3:
+            color = lerp_color((1.0, 1.0, 1.0), (1.0, 1.0, 0.0), t / 0.3)
+        elif t < 0.7:
+            color = lerp_color((1.0, 1.0, 0.0), (1.0, 0.5, 0.0), (t - 0.3) / 0.4)
+        else:
+            color = lerp_color((1.0, 0.5, 0.0), (0.5, 0.0, 0.0), (t - 0.7) / 0.3)
+        glColor3f(color[0], color[1], color[2])
+        glVertex3f(pos[0], pos[1], pos[2])
+    
+    glEnd()
+
+def draw_debris():
+    """Draw debris particles with optimized performance"""
+    if not debris_particles:
+        return
+    
+    camera_pos = np.array([0.0, 0.0, camera_state['distance']])
+    
+    near_particles = []
+    far_particles = []
+    
+    for particle in debris_particles:
+        distance_to_camera = np.linalg.norm(particle['position'] - camera_pos)
+        
+        if distance_to_camera > BLACK_HOLE_VISUAL_RADIUS * 15.0:
+            continue
+            
+        if distance_to_camera < BLACK_HOLE_VISUAL_RADIUS * 5.0:
+            near_particles.append(particle)
+        else:
+            far_particles.append(particle)
+    
+    if near_particles:
+        glPointSize(3.0)
+        glBegin(GL_POINTS)
+        for particle in near_particles:
+            pos = particle['position']
+            age = particle['age']
+            lifetime = particle['lifetime']
+            
+            t = age / lifetime
+            if 'color' in particle:
+                planet_color = particle['color']
+                dark_color = (planet_color[0] * 0.3, planet_color[1] * 0.3, planet_color[2] * 0.3)
+                color = lerp_color(planet_color, dark_color, t * 0.7)
+            else:
+                color = lerp_color((1.0, 1.0, 0.0), (0.3, 0.0, 0.0), t)
+            
+
+            glColor3f(color[0], color[1], color[2])
+            glVertex3f(pos[0], pos[1], pos[2])
+        glEnd()
+    
+    if far_particles:
+        glPointSize(1.5)
+        glBegin(GL_POINTS)
+        for particle in far_particles:
+            pos = particle['position']
+            age = particle['age']
+            lifetime = particle['lifetime']
+            
+            t = age / lifetime
+            if 'color' in particle:
+                color = particle['color']
+            else:
+                color = (1.0, 0.8, 0.0)
+            
+            glColor3f(color[0], color[1], color[2])
+            glVertex3f(pos[0], pos[1], pos[2])
+        glEnd()
+
+# ============================================================================
+# UTLITY FUNCTIONS (HUD)
+# ============================================================================
+
+def draw_hud():
+    """Draw heads-up display"""
+    if planets and selected_planet_index < len(planets):
+        planet = planets[selected_planet_index]
+        
+        draw_text(10, 750, f"Selected Planet: {planet['name']}", GLUT_BITMAP_HELVETICA_18)
+        
+        velocity_mag = np.linalg.norm(planet['velocity'])
+        acceleration_mag = np.linalg.norm(planet['acceleration'])
+        
+        kinetic_energy = 0.5 * planet['mass'] * velocity_mag * velocity_mag
+        potential_energy = 0.0
+        
+        if is_solar_system_active and sun_exists:
+            r_sun = np.linalg.norm(planet['position'] - sun_position)
+            if r_sun > 0:
+                potential_energy += -G * SUN_MASS * planet['mass'] / r_sun
+        
+        if is_black_hole_active:
+            r_bh = np.linalg.norm(planet['position'] - black_hole_position)
+            if r_bh > 0:
+                potential_energy += -G * black_hole_mass * planet['mass'] / r_bh
+        
+        total_energy = kinetic_energy + potential_energy
+        
+        status = "Normal"
+        if planet['captured']:
+            status = "Captured"
+        elif planet['spaghettified']:
+            status = "Spaghettified"
+        
+        draw_text(10, 720, f"Velocity: {velocity_mag:.2f}", GLUT_BITMAP_HELVETICA_18)
+        draw_text(10, 700, f"Acceleration: {acceleration_mag:.2f}", GLUT_BITMAP_HELVETICA_18)
+        draw_text(10, 680, f"Total Energy: {total_energy:.2f}", GLUT_BITMAP_HELVETICA_18)
+        draw_text(10, 660, f"Status: {status}", GLUT_BITMAP_HELVETICA_18)
+    
+    draw_text(700, 750, "System Statistics", GLUT_BITMAP_HELVETICA_18)
+    draw_text(700, 720, f"Black Hole Mass: {black_hole_mass:.0f}", GLUT_BITMAP_HELVETICA_18)
+    
+    captured_count = sum(1 for p in planets if p.get('captured', False))
+    active_planets = len([p for p in planets if not p.get('captured', False)])
+    
+    draw_text(700, 700, f"Active Planets: {active_planets}", GLUT_BITMAP_HELVETICA_18)
+    draw_text(700, 680, f"Planets Captured: {captured_count}", GLUT_BITMAP_HELVETICA_18)
+    draw_text(700, 660, f"Debris Particles: {len(debris_particles)}", GLUT_BITMAP_HELVETICA_18)
+    
+    state_text = "Solar System"
+    if is_black_hole_active:
+        state_text = "Black Hole Active"
+    elif is_supernova_active:
+        state_text = "Supernova"
+    
+    draw_text(700, 640, f"State: {state_text}", GLUT_BITMAP_HELVETICA_18)
+
+def draw_instructions():
+    """Draw on-screen instructions"""
+    instructions = [
+        "Controls:",
+        "B - Black Hole spawn",
+        "X - Delete Sun",
+        "P - Collision Rebound Preset",
+        "R - Reset simulation to initial state",
+        "Up/Down Arrow - Adjust black hole mass",
+        "Left/Right Arrow - Select planet",
+        "F - Focus camera on selected planet",
+        "H - Reset camera to center",
+        "G - Spawn Star Destroyer near selected planet",
+        "L - Despawn Star Destroyer",
+        "V - Toggle camera mode (Normal/Third/First)",
+        "W/S - Thrust Forward/Backward (2x power)",
+        "A/D - Yaw Left/Right (enhanced)",
+        "E/Q - Pitch Up/Down",
+        "Z/C - Roll Left/Right",
+        "5/6 - Zoom In/Out"
+    ]
+    
+    start_y = 340
+    for i, instruction in enumerate(instructions):
+        font = GLUT_BITMAP_HELVETICA_18 if i == 0 else GLUT_BITMAP_HELVETICA_18
+        draw_text(10, start_y - i * 20, instruction, font)
+
+# ============================================================================
 # FARHAN ZARIF - FEATURE 5: GRAVITATIONAL PHYSICS ENGINE
 # (Newton's Law of Universal Gravitation, Velocity Verlet Integration)
 # ============================================================================
