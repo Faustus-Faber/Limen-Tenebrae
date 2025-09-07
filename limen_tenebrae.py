@@ -61,6 +61,18 @@ mouse_y = 0
 start_button_hover = False
 MENU_MAIN = 0
 MENU_ABOUT = 1
+
+# Planet configuration data: [name, mass, radius, orbit_distance, color, initial_angle]
+PLANET_DATA = [
+    ["Mercury", 10.0, 3.0, 80.0, (0.7, 0.7, 0.7), 0.0],
+    ["Venus", 15.0, 4.0, 110.0, (1.0, 0.8, 0.0), 45.0],
+    ["Earth", 20.0, 5.0, 150.0, (0.0, 0.5, 1.0), 90.0],
+    ["Mars", 12.0, 4.0, 200.0, (1.0, 0.3, 0.0), 135.0],
+    ["Jupiter", 100.0, 15.0, 300.0, (1.0, 0.6, 0.2), 180.0],
+    ["Saturn", 80.0, 12.0, 400.0, (1.0, 1.0, 0.6), 225.0],
+    ["Uranus", 40.0, 8.0, 500.0, (0.0, 1.0, 1.0), 27]
+]
+
 def show_screen():
   pass
 def keyboard_listener():
@@ -71,6 +83,7 @@ def mouse_listener():
   pass
 def idle():
   pass
+
 
 def main():
     """Main function to initialize and run the simulation"""
