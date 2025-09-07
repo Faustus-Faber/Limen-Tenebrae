@@ -237,6 +237,277 @@ def reset_simulation():
     camera_state['elevation'] = 30.0
     
     print("Simulation reset to initial state")
+
+# ============================================================================
+# START MENU FUNCTIONS
+# ============================================================================
+
+def draw_gradient_background():
+    """Draw a beautiful gradient background for the menu."""
+    glDisable(GL_DEPTH_TEST)
+    glMatrixMode(GL_PROJECTION)
+    glPushMatrix()
+    glLoadIdentity()
+    glOrtho(0, WINDOW_WIDTH, 0, WINDOW_HEIGHT, -1, 1)
+    glMatrixMode(GL_MODELVIEW)
+    glPushMatrix()
+    glLoadIdentity()
+    
+    glBegin(GL_QUADS)
+    glColor3f(0.0, 0.0, 0.0)  
+    glVertex2f(0, 0)
+    glVertex2f(WINDOW_WIDTH, 0)
+    glColor3f(0.1, 0.1, 0.3)  
+    glVertex2f(WINDOW_WIDTH, WINDOW_HEIGHT)
+    glVertex2f(0, WINDOW_HEIGHT)
+    glEnd()
+    
+
+    glColor3f(1.0, 1.0, 1.0)
+    glPointSize(2.0)
+    glBegin(GL_POINTS)
+    star_positions = [(100, 700), (200, 650), (350, 720), (450, 680), (600, 750), 
+                     (750, 690), (850, 730), (150, 600), (300, 580), (500, 620),
+                     (700, 590), (900, 610), (80, 500), (250, 480), (400, 520),
+                     (650, 490), (800, 510), (950, 530)]
+    for x, y in star_positions:
+        glVertex2f(x, y)
+    glEnd()
+    
+    glPopMatrix()
+    glMatrixMode(GL_PROJECTION)
+    glPopMatrix()
+    glMatrixMode(GL_MODELVIEW)
+    glEnable(GL_DEPTH_TEST)
+
+
+def draw_start_button():
+    """Draw the Start button with hover effects."""
+    global start_button_hover
+    
+    button_width = 200
+    button_height = 60
+    button_x = WINDOW_WIDTH // 2 - button_width // 2
+    button_y = WINDOW_HEIGHT // 2 - button_height // 2
+    
+    glDisable(GL_DEPTH_TEST)
+    glMatrixMode(GL_PROJECTION)
+    glPushMatrix()
+    glLoadIdentity()
+    glOrtho(0, WINDOW_WIDTH, 0, WINDOW_HEIGHT, -1, 1)
+    glMatrixMode(GL_MODELVIEW)
+    glPushMatrix()
+    glLoadIdentity()
+    
+
+    if start_button_hover:
+        glColor3f(0.3, 0.6, 1.0)  
+    else:
+        glColor3f(0.2, 0.4, 0.8)  
+    
+
+    glBegin(GL_QUADS)
+    glVertex2f(button_x, button_y)
+    glVertex2f(button_x + button_width, button_y)
+    glVertex2f(button_x + button_width, button_y + button_height)
+    glVertex2f(button_x, button_y + button_height)
+    glEnd()
+    
+    glColor3f(1.0, 1.0, 1.0)
+    glLineWidth(2.0)
+    glBegin(GL_LINE_LOOP)
+    glVertex2f(button_x, button_y)
+    glVertex2f(button_x + button_width, button_y)
+    glVertex2f(button_x + button_width, button_y + button_height)
+    glVertex2f(button_x, button_y + button_height)
+    glEnd()
+    
+    glPopMatrix()
+    glMatrixMode(GL_PROJECTION)
+    glPopMatrix()
+    glMatrixMode(GL_MODELVIEW)
+    glEnable(GL_DEPTH_TEST)
+
+
+def draw_menu_text():
+    """Draw the menu title and button text."""
+    glColor3f(1.0, 1.0, 1.0)
+    title_text = "SOLAR SYSTEM SIMULATOR"
+    title_x = WINDOW_WIDTH // 2 - len(title_text) * 6
+    title_y = WINDOW_HEIGHT // 2 + 100
+    draw_text(title_x, title_y, title_text, GLUT_BITMAP_HELVETICA_18)
+    
+    start_text = "START"
+    start_x = WINDOW_WIDTH // 2 - len(start_text) * 6
+    start_y = WINDOW_HEIGHT // 2 - 10
+    draw_text(start_x, start_y, start_text, GLUT_BITMAP_HELVETICA_18)
+
+
+def draw_start_menu():
+    """Draw the complete start menu based on current section."""
+    draw_gradient_background()
+    
+    if current_menu_section == MENU_MAIN:
+        draw_main_menu()
+    elif current_menu_section == MENU_ABOUT:
+        draw_about_menu()
+
+
+def check_menu_button_hover(x, y):
+    """Check if mouse is hovering over any menu buttons."""
+    global start_button_hover, about_button_hover, back_button_hover
+    
+    y = WINDOW_HEIGHT - y
+    
+    start_button_hover = False
+    about_button_hover = False
+    back_button_hover = False
+    
+    if current_menu_section == MENU_MAIN:
+        button_width = 200
+        button_height = 50
+        center_x = WINDOW_WIDTH // 2 - button_width // 2
+        
+        if (center_x <= x <= center_x + button_width and 400 <= y <= 450):
+            start_button_hover = True
+        elif (center_x <= x <= center_x + button_width and 330 <= y <= 380):
+            about_button_hover = True
+    
+    elif current_menu_section == MENU_ABOUT:
+        if (50 <= x <= 150 and 100 <= y <= 140):
+            back_button_hover = True
+
+
+def check_menu_button_click(x, y):
+    """Check if any menu button was clicked."""
+    global game_state, current_menu_section
+    
+    y = WINDOW_HEIGHT - y
+    
+    if current_menu_section == MENU_MAIN:
+        button_width = 200
+        button_height = 50
+        center_x = WINDOW_WIDTH // 2 - button_width // 2
+        
+        if (center_x <= x <= center_x + button_width and 400 <= y <= 450):
+            game_state = GAME_STATE_SIMULATION
+            print("Starting simulation...")
+            return True
+        elif (center_x <= x <= center_x + button_width and 330 <= y <= 380):
+            current_menu_section = MENU_ABOUT
+            print("Opening about section...")
+            return True
+    
+    elif current_menu_section == MENU_ABOUT:
+        if (50 <= x <= 150 and 100 <= y <= 140):
+            current_menu_section = MENU_MAIN
+            print("Returning to main menu...")
+            return True
+    
+    return False
+
+
+def draw_menu_button(x, y, width, height, text, is_hover):
+    """Draw a menu button with hover effects."""
+    glDisable(GL_DEPTH_TEST)
+    glMatrixMode(GL_PROJECTION)
+    glPushMatrix()
+    glLoadIdentity()
+    glOrtho(0, WINDOW_WIDTH, 0, WINDOW_HEIGHT, -1, 1)
+    glMatrixMode(GL_MODELVIEW)
+    glPushMatrix()
+    glLoadIdentity()
+    
+    if is_hover:
+        glColor3f(0.3, 0.6, 1.0)
+    else:
+        glColor3f(0.2, 0.4, 0.8)
+    
+    glBegin(GL_QUADS)
+    glVertex2f(x, y)
+    glVertex2f(x + width, y)
+    glVertex2f(x + width, y + height)
+    glVertex2f(x, y + height)
+    glEnd()
+    
+    glColor3f(1.0, 1.0, 1.0)
+    glPointSize(2.0)
+    glBegin(GL_POINTS)
+    glVertex2f(x, y)
+    glVertex2f(x + width, y)
+    glVertex2f(x + width, y + height)
+    glVertex2f(x, y + height)
+    glEnd()
+    
+    glPopMatrix()
+    glMatrixMode(GL_PROJECTION)
+    glPopMatrix()
+    glMatrixMode(GL_MODELVIEW)
+    glEnable(GL_DEPTH_TEST)
+    
+    text_x = x + width // 2 - len(text) * 5
+    text_y = y + height // 2 - 10
+    draw_text(text_x, text_y, text, GLUT_BITMAP_HELVETICA_18)
+
+
+def draw_main_menu():
+    """Draw the main menu with title and navigation buttons."""
+    draw_text(200, 650, "Limen Tenebrae: An Interactive Black Hole Physics Simulator", GLUT_BITMAP_HELVETICA_18)
+    
+    quote_lines = [
+        "\"Consideration of particle emission from black holes would seem to suggest",
+        "that God not only plays dice, but also sometimes throws them where",
+        "they cannot be seen\" - Stephen Hawking"
+    ]
+    
+    glColor3f(0.8, 0.8, 1.0)
+    for i, line in enumerate(quote_lines):
+        draw_text(150, 580 - i * 25, line, GLUT_BITMAP_HELVETICA_18)
+    
+    button_width = 200
+    button_height = 50
+    center_x = WINDOW_WIDTH // 2 - button_width // 2
+    
+    draw_menu_button(center_x, 400, button_width, button_height, "Start Simulation", start_button_hover)
+    
+    draw_menu_button(center_x, 330, button_width, button_height, "About", about_button_hover)
+
+
+def draw_about_menu():
+    draw_text(450, 700, "About", GLUT_BITMAP_HELVETICA_18)
+    
+    about_lines = [
+        "Limen Tenebrae: An Interactive Black Hole Physics Simulator",
+        "",
+        "This simulator demonstrates the fascinating physics of black holes,",
+        "planetary motion, and stellar evolution. Experience:",
+        "",
+        "• Realistic gravitational interactions",
+        "• Black hole formation and effects",
+        "• Planetary orbital mechanics",
+        "• Supernova explosions",
+        "• Red giant expansion",
+        "",
+        "Controls:",
+        "• B - Trigger black hole formation",
+        "• X - Red giant expansion",
+        "• P - Add new planet",
+        "• R - Reset simulation",
+        "• ESC - Return to menu",
+        "",
+        "Explore the mysteries of the cosmos!"
+    ]
+    
+    glColor3f(1.0, 1.0, 1.0)
+    for i, line in enumerate(about_lines):
+        if line.startswith("•") or line.startswith("Controls:"):
+            glColor3f(0.8, 0.8, 1.0)
+        else:
+            glColor3f(1.0, 1.0, 1.0)
+        draw_text(150, 620 - i * 20, line, GLUT_BITMAP_HELVETICA_18)
+    
+    draw_menu_button(50, 100, 100, 40, "Back", back_button_hover)
+    
 # ============================================================================
 # SHAHID GALIB - FEATURE 1: WINDOW SETUP & STARFIELD BACKGROUND
 # ============================================================================
