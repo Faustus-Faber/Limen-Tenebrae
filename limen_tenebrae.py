@@ -1847,8 +1847,15 @@ def show_screen():
         if is_black_hole_active:
             draw_simulation_black_hole()
             
+        if is_supernova_active:
+            draw_supernova_explosion()
+        
         if debris_particles:
             draw_debris()
+        
+        draw_hud()
+        draw_instructions()
+        
     glutSwapBuffers()
 
 def main():
