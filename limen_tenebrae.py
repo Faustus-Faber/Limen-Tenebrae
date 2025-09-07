@@ -139,6 +139,20 @@ black_hole_mass = BLACK_HOLE_MASS
 black_hole_alpha = 0.0
 accretion_disk_rotation = 0.0
 
+# EVAN YUVRAJ MUNSHI - INTERACTIVE SYSTEMS & SEQUENCES VARIABLES
+is_supernova_active = False
+keys_locked = False
+is_red_giant_active = False
+red_giant_start_time = 0.0
+current_sun_radius = SUN_INITIAL_RADIUS
+engulfed_planets = []
+supernova_particles = []
+supernova_start_time = 0.0
+debris_particles = []
+debris_generation_cooldown = 0.0
+sequence_start_time = 0.0
+sequence_stage = 0
+
 # ============================================================================
 # UTILITY FUNCTIONS
 # ============================================================================
