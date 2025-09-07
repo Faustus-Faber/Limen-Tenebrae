@@ -319,12 +319,16 @@ def draw_start_button():
     glEnd()
     
     glColor3f(1.0, 1.0, 1.0)
-    glLineWidth(2.0)
-    glBegin(GL_LINE_LOOP)
-    glVertex2f(button_x, button_y)
-    glVertex2f(button_x + button_width, button_y)
-    glVertex2f(button_x + button_width, button_y + button_height)
-    glVertex2f(button_x, button_y + button_height)
+    glPointSize(3.0)
+    glBegin(GL_POINTS)
+    for i in range(int(button_width)):
+        glVertex2f(button_x + i, button_y)
+    for i in range(int(button_width)):
+        glVertex2f(button_x + i, button_y + button_height)
+    for i in range(int(button_height)):
+        glVertex2f(button_x, button_y + i)
+    for i in range(int(button_height)):
+        glVertex2f(button_x + button_width, button_y + i)
     glEnd()
     
     glPopMatrix()
@@ -332,7 +336,6 @@ def draw_start_button():
     glPopMatrix()
     glMatrixMode(GL_MODELVIEW)
     glEnable(GL_DEPTH_TEST)
-
 
 def draw_menu_text():
     """Draw the menu title and button text."""
