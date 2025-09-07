@@ -73,6 +73,10 @@ LOGICAL_CAPTURE_RADIUS_MULTIPLIER = 5.0
 SPIRAL_DECAY_RATE = 0.02
 G = 10000.0
 DT = 0.016
+current_menu_section = MENU_MAIN
+about_button_hover = False
+back_button_hover = False
+
 
 # EVAN YUVRAJ MUNSHI - INTERACTIVE SYSTEMS & SEQUENCES CONSTANTS
 SUPERNOVA_DURATION = 3.0
@@ -93,7 +97,8 @@ PLANET_DATA = [
     ["Mars", 12.0, 4.0, 200.0, (1.0, 0.3, 0.0), 135.0],
     ["Jupiter", 100.0, 15.0, 300.0, (1.0, 0.6, 0.2), 180.0],
     ["Saturn", 80.0, 12.0, 400.0, (1.0, 1.0, 0.6), 225.0],
-    ["Uranus", 40.0, 8.0, 500.0, (0.0, 1.0, 1.0), 27]
+    ["Uranus", 40.0, 8.0, 500.0, (0.0, 1.0, 1.0), 270.0],
+    ["Neptune", 35.0, 7.0, 600.0, (0.0, 0.0, 1.0), 315.0]
 ]
 
 # ============================================================================
@@ -683,6 +688,7 @@ def draw_planets():
             glVertex3f(trail_pos[0], trail_pos[1], trail_pos[2])
         glEnd()
 
+        glPushMatrix()
         # FARHAN ZARIF'S PART - Spaghettification effect
         if planet['spaghettified']:
             direction_to_bh = normalize_vector(black_hole_position - planet['position'])
@@ -2021,9 +2027,6 @@ def keyboard_listener(key, x, y):
         camera_state['distance'] = min(2000.0, camera_state['distance'] + 50.0)
         print(f"Camera zoom out - Distance: {camera_state['distance']:.1f}")
 
-_index]['position'].copy()
-                print(f"Camera now following {planets[selected_planet_index]['name']}")
-
 def special_key_listener(key, x, y):
     """Handle special key input (arrow keys)"""
     global black_hole_mass, keys_locked
@@ -2104,6 +2107,8 @@ def show_screen():
     glLoadIdentity()
     glViewport(0, 0, 1000, 800)
     
+    if game_state == GAME_STATE_MENU:
+        draw_start_menu()
     if game_state == GAME_STATE_SIMULATION:
         setup_camera()
         
