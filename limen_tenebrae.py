@@ -351,7 +351,29 @@ def draw_planets():
         for trail_pos in planet['orbital_trail'][-100:]:  # Last 100 positions
             glVertex3f(trail_pos[0], trail_pos[1], trail_pos[2])
         glEnd()
+
+        # FARHAN ZARIF'S PART - Spaghettification effect
+        if planet['spaghettified']:
+            direction_to_bh = normalize_vector(black_hole_position - planet['position'])
+            glTranslatef(planet['position'][0], planet['position'][1], planet['position'][2])
+            angle = math.degrees(math.atan2(direction_to_bh[1], direction_to_bh[0]))
+            glRotatef(angle, 0, 0, 1)
+            
+            stretch_factor = planet['spaghetti_factor']
+            glScalef(1.0 / stretch_factor, stretch_factor, 1.0)
+        else:
+            glTranslatef(planet['position'][0], planet['position'][1], planet['position'][2])
         
+        color = planet['color']
+        glColor3f(color[0], color[1], color[2])
+        
+        quadric = gluNewQuadric()
+        gluSphere(quadric, planet['radius'], 10, 10)
+        
+        if i == 5 and not planet['spaghettified']:  
+            draw_saturn_rings(planet['radius'])
+        
+        glPopMatrix()
 
 def draw_saturn_rings(planet_radius):
     """Draw Saturn's rings using GL_QUADS"""
