@@ -202,6 +202,41 @@ def draw_text(x, y, text, font=GLUT_BITMAP_HELVETICA_18):
     glMatrixMode(GL_PROJECTION)
     glPopMatrix()
     glMatrixMode(GL_MODELVIEW)
+
+#Munshi
+def reset_simulation():
+    """Reset the simulation to initial state"""
+    global is_solar_system_active, is_black_hole_active, is_supernova_active
+    global sun_exists, black_hole_mass, black_hole_alpha, selected_planet_index
+    global supernova_particles, debris_particles, sequence_start_time, sequence_stage
+    global accretion_disk_rotation, camera_state
+    
+    is_solar_system_active = True
+    is_black_hole_active = False
+    is_supernova_active = False
+    
+    sun_exists = True
+    
+    black_hole_mass = BLACK_HOLE_MASS
+    black_hole_alpha = 0.0
+    accretion_disk_rotation = 0.0
+    
+    sequence_start_time = 0.0
+    sequence_stage = 0
+    
+    selected_planet_index = 0
+    
+    supernova_particles.clear()
+    debris_particles.clear()
+    
+    init_planets()
+    
+    camera_state['target'] = np.array([0.0, 0.0, 0.0])
+    camera_state['distance'] = 200.0
+    camera_state['azimuth'] = 0.0
+    camera_state['elevation'] = 30.0
+    
+    print("Simulation reset to initial state")
 # ============================================================================
 # SHAHID GALIB - FEATURE 1: WINDOW SETUP & STARFIELD BACKGROUND
 # ============================================================================
