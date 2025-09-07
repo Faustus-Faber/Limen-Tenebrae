@@ -1199,6 +1199,16 @@ def keyboard_listener(key, x, y):
     if keys_locked and key in event_trigger_keys:
         print("Event keys are locked! Press R to reset and unlock. Another event cannot be triggered.")
         return
+
+    #Feature 4 - Farhan Zarif
+    if key == b'b' or key == b'B':
+        sequence_start_time = current_time
+        sequence_stage = 1
+        is_supernova_active = True
+        is_black_hole_active = True
+        sun_exists = False
+        keys_locked = True
+        print("Black hole sequence started! Keys locked until reset (R).")
     
     #Galib
     elif key == b'f' or key == b'F':
