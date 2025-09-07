@@ -148,6 +148,35 @@ def lerp_color(color1, color2, t):
     """Linear interpolation between two RGB colors"""
     return tuple(lerp(color1[i], color2[i], t) for i in range(3))
 
+def calculate_schwarzschild_radius(mass):
+    """Calculate Schwarzschild radius for given mass"""
+    return BLACK_HOLE_SCALE_FACTOR * mass
+
+def calculate_tidal_radius(mass):
+    """Calculate tidal radius for spaghettification"""
+    return calculate_schwarzschild_radius(mass) * TIDAL_RADIUS_MULTIPLIER
+
+def draw_text(x, y, text, font=GLUT_BITMAP_HELVETICA_18):
+    """Draw text at screen coordinates"""
+    glColor3f(1.0, 1.0, 1.0)
+    glMatrixMode(GL_PROJECTION)
+    glPushMatrix()
+    glLoadIdentity()
+    
+    gluOrtho2D(0, 1000, 0, 800)
+    
+    glMatrixMode(GL_MODELVIEW)
+    glPushMatrix()
+    glLoadIdentity()
+    
+    glRasterPos2f(x, y)
+    for ch in text:
+        glutBitmapCharacter(font, ord(ch))
+    
+    glPopMatrix()
+    glMatrixMode(GL_PROJECTION)
+    glPopMatrix()
+    glMatrixMode(GL_MODELVIEW)
 # ============================================================================
 # SHAHID GALIB - FEATURE 1: WINDOW SETUP & STARFIELD BACKGROUND
 # ============================================================================
