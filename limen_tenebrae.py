@@ -1642,7 +1642,19 @@ def keyboard_listener(key, x, y):
         sun_exists = False
         keys_locked = True
         print("Black hole sequence started! Keys locked until reset (R).")
-    
+        
+    #Munshi  
+    elif key == b'x' or key == b'X':
+        global is_red_giant_active, red_giant_start_time, current_sun_radius, engulfed_planets
+        
+        print("Starting red giant expansion phase...")
+        is_red_giant_active = True
+        red_giant_start_time = current_time
+        current_sun_radius = SUN_INITIAL_RADIUS
+        engulfed_planets = []
+        keys_locked = True
+        print("Red giant sequence started! Keys locked until reset (R).")
+        
     #Galib
     elif key == b'f' or key == b'F':
         if planets and selected_planet_index < len(planets):
@@ -1725,7 +1737,10 @@ def keyboard_listener(key, x, y):
         camera_state['target'] = np.array([0.0, 0.0, 0.0])
         camera_state['is_following_planet'] = False
         print("Camera centered on origin, following disabled")
-
+        
+    elif key == b'p' or key == b'P':
+        #Evan Yuvraj
+        setup_collision_rebound_preset()
     
     #Shahid Galib
     elif key == b'5':
