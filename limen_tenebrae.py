@@ -109,6 +109,26 @@ camera_transition_duration = 0.6
 camera_start_pos = np.array([0.0, 0.0, 0.0])
 camera_start_target = np.array([0.0, 0.0, 0.0])
 
+# ============================================================================
+# UTILITY FUNCTIONS
+# ============================================================================
+
+# SHAHID GALIB - VISUAL FOUNDATION & SOLAR SYSTEM UTILITIES
+def normalize_vector(v):
+    """Normalize a numpy vector"""
+    norm = np.linalg.norm(v)
+    if norm == 0:
+        return v
+    return v / norm
+
+def lerp(a, b, t):
+    """Linear interpolation between a and b by factor t"""
+    return a + t * (b - a)
+
+def lerp_color(color1, color2, t):
+    """Linear interpolation between two RGB colors"""
+    return tuple(lerp(color1[i], color2[i], t) for i in range(3))
+
 def show_screen():
   pass
 def keyboard_listener():
