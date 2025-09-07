@@ -1021,7 +1021,19 @@ def calculate_gravitational_acceleration(position):
                 acceleration += acc_magnitude * normalize_vector(r_vec)
     
     return acceleration
-
+#Evan
+def update_supernova_particles(dt):
+    """Update supernova particle positions and ages"""
+    global supernova_particles
+    
+    for i in range(len(supernova_particles) - 1, -1, -1):
+        particle = supernova_particles[i]
+        particle['position'] += particle['velocity'] * dt
+        particle['age'] += dt
+        
+        if particle['age'] >= particle['lifetime']:
+            supernova_particles.pop(i)
+            
 def update_debris_particles(dt):
     """Update debris particle positions and ages with optimized performance"""
     global debris_particles, debris_generation_cooldown
@@ -1131,7 +1143,70 @@ def handle_sequences(dt):
     
     elif sequence_stage == 3:  
         pass
+#Evan
+def update_red_giant_expansion(dt):
+    """Update red giant expansion phase"""
+    global current_sun_radius, is_red_giant_active, is_supernova_active, sun_exists
+    global is_solar_system_active
+    
+    if not is_red_giant_active:
+        return
+    
+    elapsed_time = current_time - red_giant_start_time
+    
+    if elapsed_time < RED_GIANT_DURATION:
+        progress = elapsed_time / RED_GIANT_DURATION
+        current_sun_radius = SUN_INITIAL_RADIUS + (RED_GIANT_MAX_RADIUS - SUN_INITIAL_RADIUS) * progress
+        check_planet_engulfing()
+        
+        print(f"Red giant expansion: {progress*100:.1f}% complete, radius: {current_sun_radius:.1f}")
+    else:
+        print("Red giant phase complete - transitioning to supernova!")
+        is_red_giant_active = False
+        is_solar_system_active = False
+        sun_exists = False
+        is_supernova_active = True
+        create_supernova_explosion()
 
+def check_planet_engulfing():
+    """Check if any planets should be engulfed by the red giant"""
+    global engulfed_planets
+    
+    for planet in planets:
+        if planet['name'] not in engulfed_planets:
+            distance = np.linalg.norm(planet['position'] - sun_position)
+            if distance <= current_sun_radius:
+                engulfed_planets.append(planet['name'])
+                print(f"{planet['name']} has been engulfed by the red giant!")
+
+def is_planet_engulfed(planet):
+    """Check if a planet has been engulfed"""
+    return planet['name'] in engulfed_planets
+
+def create_supernova_explosion():
+    """Create supernova explosion particles"""
+    global supernova_particles
+    
+    supernova_particles = []
+    num_particles = 500
+    
+    for _ in range(num_particles):
+        theta = random.uniform(0, 2 * math.pi)
+        phi = random.uniform(0, math.pi)
+        speed = random.uniform(50.0, 200.0)
+        velocity = np.array([
+            speed * math.sin(phi) * math.cos(theta),
+            speed * math.sin(phi) * math.sin(theta),
+            speed * math.cos(phi)
+        ])
+        
+        particle = {
+            'position': sun_position.copy(),
+            'velocity': velocity,
+            'age': 0.0,
+            'lifetime': random.uniform(2.0, 4.0)
+        }
+        supernova_particles.append(particle)
 # ============================================================================
 # FARHAN ZARIF - FEATURE 6: BLACK HOLE CAPTURE MECHANICS
 # (Tidal Forces, Event Horizon, Schwarzschild Radius Physics)
