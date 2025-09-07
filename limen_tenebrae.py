@@ -586,16 +586,16 @@ def keyboard_listener(key, x, y):
         # Pitch up
         if spaceship_exists:
             spaceship_rotation[0] += 6.0
-            spaceship_rotation[0] = min(spaceship_rotation[0], 85.0)  # Limit pitch
+            spaceship_rotation[0] = min(spaceship_rotation[0], 85.0)  
     elif key == b'q' or key == b'Q':
         if spaceship_exists:
             spaceship_rotation[0] -= 6.0
-            spaceship_rotation[0] = max(spaceship_rotation[0], -85.0)  # Limit pitch
+            spaceship_rotation[0] = max(spaceship_rotation[0], -85.0)  
     elif key == b'z' or key == b'Z':
         if spaceship_exists:
             spaceship_rotation[2] -= 10.0
     elif key == b'c' or key == b'C':
-        # Roll right (moved C from camera center to roll control)
+   
         if spaceship_exists:
             spaceship_rotation[2] += 10.0
     elif key == b'x' or key == b'X':
