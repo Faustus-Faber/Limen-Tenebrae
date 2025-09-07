@@ -720,7 +720,183 @@ def draw_black_hole_glow():
             glVertex3f(outer_radius * cos_a2, outer_radius * sin_a2, 0.0)
             glVertex3f(inner_radius * cos_a2, inner_radius * sin_a2, 0.0)
         glEnd()
+
+# ============================================================================
+# FARHAN ZARIF - FEATURE 5: GRAVITATIONAL PHYSICS ENGINE
+# (Newton's Law of Universal Gravitation, Velocity Verlet Integration)
+# ============================================================================
+
+def update_physics(dt):
+    """Update physics simulation"""
+    global accretion_disk_rotation, camera_state
     
+    if camera_state['is_following_planet'] and planets and selected_planet_index < len(planets):
+        camera_state['target'] = planets[selected_planet_index]['position'].copy()
+    
+    update_red_giant_expansion(dt)
+    update_supernova_particles(dt)
+    update_debris_particles(dt)
+    
+    for planet in planets[:]:
+        if planet['captured']:
+            continue
+            
+        acceleration = calculate_gravitational_acceleration(planet['position'])
+        
+        dt2 = dt * dt
+        planet['position'] += planet['velocity'] * dt + 0.5 * planet['acceleration'] * dt2
+        
+        new_acceleration = calculate_gravitational_acceleration(planet['position'])
+        planet['velocity'] += 0.5 * (planet['acceleration'] + new_acceleration) * dt
+        planet['acceleration'] = new_acceleration
+        
+        planet['orbital_trail'].append(planet['position'].copy())
+        if len(planet['orbital_trail']) > 200:
+            planet['orbital_trail'].pop(0)
+        
+        if is_black_hole_active:
+            check_black_hole_interactions(planet)
+    
+    update_collision_physics()
+    update_spaceship(dt)
+
+def calculate_gravitational_acceleration(position):
+    """Calculate gravitational acceleration at given position"""
+    acceleration = np.array([0.0, 0.0, 0.0])
+    
+    if sequence_stage >= 1:
+        r_vec = sun_position - position 
+        r_mag = np.linalg.norm(r_vec)
+        if r_mag > 0:
+            acc_magnitude = G * black_hole_mass / (r_mag * r_mag)
+            acceleration += acc_magnitude * normalize_vector(r_vec)
+    else:
+        if is_solar_system_active and sun_exists:
+            r_vec = sun_position - position
+            r_mag = np.linalg.norm(r_vec)
+            if r_mag > 0:
+                acc_magnitude = G * SUN_MASS / (r_mag * r_mag)
+                acceleration += acc_magnitude * normalize_vector(r_vec)
+        
+        if is_black_hole_active:
+            r_vec = black_hole_position - position
+            r_mag = np.linalg.norm(r_vec)
+            if r_mag > 0:
+                acc_magnitude = G * black_hole_mass / (r_mag * r_mag)
+                acceleration += acc_magnitude * normalize_vector(r_vec)
+    
+    return acceleration
+
+def update_debris_particles(dt):
+    """Update debris particle positions and ages with optimized performance"""
+    global debris_particles, debris_generation_cooldown
+    
+    if debris_generation_cooldown > 0:
+        debris_generation_cooldown -= dt
+    
+    if len(debris_particles) == 0:
+        return
+
+    for i in range(len(debris_particles) - 1, -1, -1):
+        particle = debris_particles[i]
+        
+        current_distance = np.linalg.norm(particle['position'] - black_hole_position)
+        
+        if current_distance > BLACK_HOLE_VISUAL_RADIUS * 8.0:
+            particle['position'] += particle['velocity'] * dt * 0.5  
+            particle['age'] += dt
+            
+            if particle['age'] >= particle['lifetime'] or current_distance > BLACK_HOLE_VISUAL_RADIUS * 12.0:
+                debris_particles.pop(i)
+            continue
+        
+        if is_black_hole_active and particle['age'] > particle.get('absorption_delay', 0.0):
+            if current_distance > BLACK_HOLE_VISUAL_RADIUS:
+                distance_factor = max(0.5, BLACK_HOLE_VISUAL_RADIUS * 5.0 / current_distance)  
+                gravity_strength = (G * black_hole_mass * 2.0) / (current_distance * current_distance + 10.0)
+                to_black_hole = (black_hole_position - particle['position']) / current_distance
+                acceleration = to_black_hole * gravity_strength * 0.2 * distance_factor  
+                particle['velocity'] += acceleration * dt
+                
+                effective_age = particle['age'] - particle.get('absorption_delay', 0.0)
+                age_factor = min(1.0, effective_age / (particle['lifetime'] * 0.3))  
+                
+                if age_factor > 0.05:  
+                    proximity_factor = max(2.0, (BLACK_HOLE_VISUAL_RADIUS * 6.0) / current_distance)
+                    spiral_strength = SPIRAL_DECAY_RATE * 2.0 * age_factor * proximity_factor 
+                    spiral_velocity = to_black_hole * spiral_strength * current_distance * 0.3  
+                    particle['velocity'] += spiral_velocity * dt
+                    decay_rate = 0.02 * proximity_factor * age_factor  
+                    particle['velocity'] *= (1.0 - decay_rate)  
+        
+        particle['position'] += particle['velocity'] * dt
+        particle['age'] += dt
+        
+        if is_black_hole_active:
+            distance_to_bh = np.linalg.norm(particle['position'] - black_hole_position)
+            
+            absorption_radius = BLACK_HOLE_VISUAL_RADIUS * 1.2  
+            inner_radius = BLACK_HOLE_VISUAL_RADIUS * 2.5
+            outer_radius = BLACK_HOLE_VISUAL_RADIUS * 6.0
+            
+            if distance_to_bh < absorption_radius:
+                if 'absorption_effect' not in particle:
+                    particle['absorption_effect'] = True
+                    particle['color'] = (min(1.0, particle['color'][0] * 2.0), 
+                                       particle['color'][1] * 0.3, 
+                                       particle['color'][2] * 0.3)
+
+                debris_particles.pop(i)
+                continue
+            
+            if distance_to_bh > outer_radius:
+                direction_to_bh = (black_hole_position - particle['position']) / distance_to_bh
+                particle['position'] = black_hole_position + direction_to_bh * (outer_radius - 5.0)
+                orbital_speed = math.sqrt(G * black_hole_mass / outer_radius) * 0.6
+                tangent = np.array([-direction_to_bh[1], direction_to_bh[0], 0])
+                if np.linalg.norm(tangent) > 0:
+                    tangent = tangent / np.linalg.norm(tangent)
+                    particle['velocity'] = tangent * orbital_speed + direction_to_bh * random.uniform(-2.0, 0.5)
+                else:
+                    particle['velocity'] = np.array([orbital_speed, 0, 0])
+            
+            if distance_to_bh <= BLACK_HOLE_VISUAL_RADIUS * 1.2: 
+                debris_particles.pop(i)
+                continue
+        
+        if particle['age'] >= particle['lifetime']:
+            debris_particles.pop(i)
+
+def handle_sequences(dt):
+    """Handle timed sequences (supernova to black hole)"""
+    global sequence_stage, is_supernova_active, is_black_hole_active, black_hole_alpha
+    global sun_exists, supernova_particles, sequence_start_time, is_solar_system_active
+    
+    if sequence_stage == 0:
+        return  
+    
+    elapsed_time = current_time - sequence_start_time
+    
+    if sequence_stage == 1:  
+        if not supernova_particles:  
+            create_supernova_explosion()
+            sun_exists = False
+        
+        if elapsed_time >= SUPERNOVA_DURATION:
+            sequence_stage = 2
+            is_supernova_active = False
+    
+    elif sequence_stage == 2:  
+        fade_progress = (elapsed_time - SUPERNOVA_DURATION) / BLACK_HOLE_FADE_IN_DURATION
+        black_hole_alpha = min(1.0, fade_progress)
+        
+        if fade_progress >= 1.0:
+            sequence_stage = 3
+            black_hole_alpha = 1.0
+    
+    elif sequence_stage == 3:  
+        pass
+
 # ============================================================================
 # KEYBOARD & MOUSE FUNCTIONS
 # ============================================================================
