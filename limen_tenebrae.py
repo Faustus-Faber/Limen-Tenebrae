@@ -898,6 +898,284 @@ def handle_sequences(dt):
         pass
 
 # ============================================================================
+# FARHAN ZARIF - FEATURE 6: BLACK HOLE CAPTURE MECHANICS
+# (Tidal Forces, Event Horizon, Schwarzschild Radius Physics)
+# ============================================================================
+
+def check_black_hole_interactions(planet):
+    """Check planet interactions with black hole"""
+    distance_to_bh = np.linalg.norm(planet['position'] - black_hole_position)
+    rs = calculate_schwarzschild_radius(black_hole_mass)
+    tidal_radius = calculate_tidal_radius(black_hole_mass)
+    logical_capture_radius = rs * LOGICAL_CAPTURE_RADIUS_MULTIPLIER
+    
+    if distance_to_bh <= BLACK_HOLE_VISUAL_RADIUS:
+        capture_planet(planet)
+        return
+    
+    if 'logically_captured' not in planet:
+        planet['logically_captured'] = False
+    
+    if not planet['logically_captured'] and distance_to_bh <= logical_capture_radius:
+        planet['logically_captured'] = True
+    
+    accretion_disk_outer_radius = BLACK_HOLE_VISUAL_RADIUS * 6.0
+    if distance_to_bh <= accretion_disk_outer_radius or planet['logically_captured']:
+        to_bh = black_hole_position - planet['position']
+        distance = np.linalg.norm(to_bh)
+        
+        if distance > 0:
+            orbital_speed = np.sqrt(G * black_hole_mass / distance) * 0.8  
+            to_bh_normalized = to_bh / distance
+            current_vel = planet['velocity']
+            current_speed = np.linalg.norm(current_vel)
+            if current_speed > 0.1:
+                current_vel_normalized = current_vel / current_speed
+                radial_component = np.dot(current_vel_normalized, to_bh_normalized)
+                tangential_component = current_vel_normalized - radial_component * to_bh_normalized
+                tangential_mag = np.linalg.norm(tangential_component)
+                
+                if tangential_mag > 0.01:
+                    tangential_dir = tangential_component / tangential_mag
+                else:
+                    if abs(to_bh_normalized[2]) < 0.9:
+                        tangential_dir = np.cross(to_bh_normalized, np.array([0.0, 0.0, 1.0]))
+                    else:
+                        tangential_dir = np.cross(to_bh_normalized, np.array([1.0, 0.0, 0.0]))
+                    tangential_dir = tangential_dir / np.linalg.norm(tangential_dir)
+            else:
+                if abs(to_bh_normalized[2]) < 0.9:
+                    tangential_dir = np.cross(to_bh_normalized, np.array([0.0, 0.0, 1.0]))
+                else:
+                    tangential_dir = np.cross(to_bh_normalized, np.array([1.0, 0.0, 0.0]))
+                tangential_dir = tangential_dir / np.linalg.norm(tangential_dir)
+            
+            if distance <= accretion_disk_outer_radius:
+                orbital_speed *= 0.6  
+                orbital_decay = 0.95   
+                inward_factor = 0.25   
+                
+                spiral_tightness = (accretion_disk_outer_radius - distance) / accretion_disk_outer_radius
+                inward_factor += spiral_tightness * 0.15  
+                
+                if distance <= BLACK_HOLE_VISUAL_RADIUS * 3.0:
+                    proximity_factor = (BLACK_HOLE_VISUAL_RADIUS * 3.0 - distance) / (BLACK_HOLE_VISUAL_RADIUS * 3.0)
+                    inward_factor += proximity_factor * 0.5  
+            else:
+                orbital_decay = 0.99  
+                inward_factor = 0.05   
+            
+            orbital_velocity = tangential_dir * orbital_speed * orbital_decay
+            inward_velocity = to_bh_normalized * (orbital_speed * inward_factor)
+            planet['velocity'] = orbital_velocity + inward_velocity
+    
+    if distance_to_bh <= accretion_disk_outer_radius and not planet['spaghettified']:
+        planet['spaghettified'] = True
+        planet['spaghetti_factor'] = 1.0
+    
+    if planet['spaghettified']:
+        stretch_factor = max(1.0, accretion_disk_outer_radius / distance_to_bh)
+        planet['spaghetti_factor'] = min(5.0, stretch_factor)
+
+def capture_planet(planet):
+    """Capture a planet by the black hole - creates supernova-like explosion"""
+    global debris_particles, debris_generation_cooldown, current_time
+    
+    if current_time < debris_generation_cooldown:
+        planet['captured'] = True
+        return
+    
+    if len(debris_particles) > 800: 
+        debris_particles = debris_particles[-600:] 
+    
+    debris_generation_cooldown = current_time + 0.5
+    planet['captured'] = True
+    planet_to_bh = black_hole_position - planet['position']
+    distance_to_bh = np.linalg.norm(planet_to_bh)
+
+    if distance_to_bh > 0:
+        direction_to_bh = planet_to_bh / distance_to_bh
+    else:
+        direction_to_bh = np.array([1.0, 0.0, 0.0])
+    
+    planet_velocity_normalized = np.array([0.0, 0.0, 0.0])
+    planet_speed = np.linalg.norm(planet['velocity'])
+    avoid_direction = planet_speed > 1.0 
+    if avoid_direction:
+        planet_velocity_normalized = planet['velocity'] / planet_speed
+    
+    planet_color = planet['color']
+    planet_mass = planet['mass']
+    planet_radius = planet['radius']
+    planet_name = planet.get('name', 'Unknown')
+    
+    volume_factor = (planet_radius ** 3) / 125.0  
+    mass_factor = planet_mass / 20.0  
+    base_debris_count = int(50 + (mass_factor * 80) + (volume_factor * 60))
+    
+    composition_multiplier = 1.0
+    if 'Mercury' in planet_name:
+        composition_multiplier = 0.8  
+    elif 'Venus' in planet_name:
+        composition_multiplier = 1.1  
+    elif 'Earth' in planet_name:
+        composition_multiplier = 1.2  
+    elif 'Mars' in planet_name:
+        composition_multiplier = 0.9 
+    elif 'Jupiter' in planet_name:
+        composition_multiplier = 2.5  
+    elif 'Saturn' in planet_name:
+        composition_multiplier = 2.2  
+    elif 'Uranus' in planet_name:
+        composition_multiplier = 1.8  
+    elif 'Neptune' in planet_name:
+        composition_multiplier = 1.9  
+    
+    num_debris = int(base_debris_count * composition_multiplier)
+    num_debris = max(30, min(150, num_debris))  
+    
+    if num_debris < 120:
+        num_layers = 3
+    elif num_debris < 200:
+        num_layers = 4
+    elif num_debris < 300:
+        num_layers = 5
+    else:
+        num_layers = 6
+    
+    particles_per_layer = num_debris // num_layers
+    
+    for layer in range(num_layers):
+        layer_speed_multiplier = 1.0 + (layer * 0.3)
+        
+        for _ in range(particles_per_layer):
+            theta = random.uniform(0, 2 * math.pi)
+            phi = random.uniform(0, math.pi)
+            
+            direction = np.array([
+                math.sin(phi) * math.cos(theta),
+                math.sin(phi) * math.sin(theta),
+                math.cos(phi)
+            ])
+            
+            if avoid_direction:
+                dot_product = np.dot(direction, planet_velocity_normalized)
+                if dot_product > 0.5:
+                    perpendicular = np.array([-planet_velocity_normalized[1], planet_velocity_normalized[0], 0])
+                    if np.linalg.norm(perpendicular) < 0.1:
+                        perpendicular = np.array([0, -planet_velocity_normalized[2], planet_velocity_normalized[1]])
+                    perpendicular = perpendicular / np.linalg.norm(perpendicular)
+                    
+                    direction = 0.7 * perpendicular + 0.3 * direction
+                    direction = direction / np.linalg.norm(direction)
+            
+            inner_radius = BLACK_HOLE_VISUAL_RADIUS * 2.5
+            outer_radius = BLACK_HOLE_VISUAL_RADIUS * 6.0
+            
+            if random.random() < 0.90:
+                distance_from_bh = random.uniform(inner_radius, outer_radius)
+                theta = random.uniform(0, 2 * math.pi)
+                
+                z_variation = (outer_radius - distance_from_bh) / outer_radius * 8.0
+                z = random.uniform(-z_variation, z_variation)
+                
+                x = distance_from_bh * math.cos(theta) + random.uniform(-15.0, 15.0)
+                y = distance_from_bh * math.sin(theta) + random.uniform(-15.0, 15.0)
+                
+                position = black_hole_position + np.array([x, y, z])
+                
+                orbital_speed = math.sqrt(G * black_hole_mass / distance_from_bh) * 0.5
+                velocity = np.array([-y, x, 0]) * (orbital_speed / distance_from_bh)
+                
+                velocity += np.random.normal(0, 3.0, 3)
+                
+            else:
+                distance_from_bh = random.uniform(outer_radius * 0.9, outer_radius * 1.1)
+                theta = random.uniform(0, 2 * math.pi)
+                phi = random.uniform(0.3, 0.8) * math.pi
+                
+                x = distance_from_bh * math.sin(phi) * math.cos(theta)
+                y = distance_from_bh * math.sin(phi) * math.sin(theta)
+                z = distance_from_bh * math.cos(phi)
+                if random.random() < 0.5:
+                    z = -z
+                
+                position = black_hole_position + np.array([x, y, z])
+                
+                orbital_speed = math.sqrt(G * black_hole_mass / distance_from_bh) * 0.4
+                radial_dir = np.array([x, y, z]) / distance_from_bh
+                tangent = np.array([-y, x, 0])
+                if np.linalg.norm(tangent) > 0:
+                    tangent = tangent / np.linalg.norm(tangent)
+                    velocity = tangent * orbital_speed + radial_dir * random.uniform(-2.0, 0.5)
+                else:
+                    velocity = np.array([orbital_speed, 0, 0])
+            
+            velocity_multiplier = 1.0
+            if 'Mercury' in planet_name:
+                velocity_multiplier = 0.7
+            elif 'Venus' in planet_name:
+                velocity_multiplier = 1.3
+            elif 'Earth' in planet_name:
+                velocity_multiplier = 1.0
+            elif 'Mars' in planet_name:
+                velocity_multiplier = 0.8
+            elif 'Jupiter' in planet_name:
+                velocity_multiplier = 1.8
+            elif 'Saturn' in planet_name:
+                velocity_multiplier = 1.6
+            elif 'Uranus' in planet_name:
+                velocity_multiplier = 1.2
+            elif 'Neptune' in planet_name:
+                velocity_multiplier = 1.4
+            
+            velocity *= velocity_multiplier
+            velocity += np.random.normal(0, 2.0 * velocity_multiplier, 3)
+            
+            base_lifetime = 10.0
+            lifetime_modifier = 1.0
+            if 'Mercury' in planet_name:
+                lifetime_modifier = 0.8
+            elif 'Venus' in planet_name:
+                lifetime_modifier = 1.2
+            elif 'Earth' in planet_name:
+                lifetime_modifier = 1.1
+            elif 'Mars' in planet_name:
+                lifetime_modifier = 0.9
+            elif 'Jupiter' in planet_name:
+                lifetime_modifier = 1.8
+            elif 'Saturn' in planet_name:
+                lifetime_modifier = 1.6
+            elif 'Uranus' in planet_name:
+                lifetime_modifier = 1.3
+            elif 'Neptune' in planet_name:
+                lifetime_modifier = 1.4
+            
+            particle_lifetime = random.uniform(base_lifetime * 0.7, base_lifetime * 1.3) * lifetime_modifier
+            
+            mass_delay_factor = min(2.0, planet_mass / 50.0)
+            base_delay = 1.5 * mass_delay_factor
+            absorption_delay = random.uniform(0.0, base_delay)
+            
+            debris = {
+                'position': position,
+                'velocity': velocity,
+                'color': planet_color,
+                'age': 0.0,
+                'lifetime': particle_lifetime,
+                'initial_distance': np.linalg.norm(position - black_hole_position),
+                'absorption_delay': absorption_delay,
+                'planet_type': planet_name,
+                'mass_factor': mass_factor
+            }
+            debris_particles.append(debris)
+    
+    for i in range(len(planets) - 1, -1, -1):
+        if planets[i] is planet:
+            planets.pop(i)
+            break
+            
+# ============================================================================
 # KEYBOARD & MOUSE FUNCTIONS
 # ============================================================================
 
