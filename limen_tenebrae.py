@@ -506,7 +506,125 @@ def draw_star_destroyer():
 
     glPopMatrix()
 
+# ============================================================================
+# KEYBOARD & MOUSE FUNCTIONS
+# ============================================================================
 
+# SHAHID GALIB - VISUAL FOUNDATION & SOLAR SYSTEM CONTROLS
+def keyboard_listener(key, x, y):
+    """Handle keyboard input for all simulation controls"""
+    global is_solar_system_active, is_black_hole_active, is_supernova_active
+    global sequence_start_time, sequence_stage, black_hole_mass, selected_planet_index, keys_locked
+    global spaceship_velocity, spaceship_rotation, spaceship_position, spaceship_scale, spaceship_exists
+    global camera_mode, camera_transition_active, camera_transition_start, camera_start_pos, camera_start_target
+    global G
+    global game_state
+    if key == b'\x1b':
+        game_state = GAME_STATE_MENU
+        print("Returning to main menu...")
+        return
+    if game_state != GAME_STATE_SIMULATION:
+        return
+
+    event_trigger_keys = [b'b', b'B', b'x', b'X', b'p', b'P']
+    if keys_locked and key in event_trigger_keys:
+        print("Event keys are locked! Press R to reset and unlock. Another event cannot be triggered.")
+        return
+    
+    #Galib
+    elif key == b'f' or key == b'F':
+        if planets and selected_planet_index < len(planets):
+            camera_state['target'] = planets[selected_planet_index]['position'].copy()
+            camera_state['is_following_planet'] = True
+            print(f"Camera now following {planets[selected_planet_index]['name']}")
+            
+    elif key == b'h' or key == b'H':
+        camera_state['target'] = np.array([0.0, 0.0, 0.0])
+        camera_state['is_following_planet'] = False
+        print("Camera centered on origin, following disabled")
+        
+    elif key == b'r' or key == b'R':
+        reset_simulation()
+        keys_locked = False
+        print("Simulation reset! Keys unlocked.")
+        
+    elif key == b'v' or key == b'V':
+        if spaceship_exists:
+            new_mode = 1 if camera_mode == 0 else (2 if camera_mode == 1 else 0)
+            if new_mode == 0:
+                yaw = math.radians(spaceship_rotation[1])
+                pitch = math.radians(spaceship_rotation[0])
+                forward = np.array([math.cos(yaw) * math.cos(pitch), math.sin(yaw) * math.cos(pitch), math.sin(pitch)])
+                start_pos = spaceship_position - forward * (spaceship_scale * 8.0) + np.array([0.0, 0.0, spaceship_scale * 3.0])
+                camera_start_pos = start_pos
+                camera_start_target = spaceship_position + forward * (spaceship_scale * 6.0)
+                camera_transition_active = True
+                camera_transition_start = time.time()
+                camera_mode = 0
+            else:
+                request_camera_transition(new_mode)
+    
+    elif key == b'w' or key == b'W':
+        if spaceship_exists:
+            yaw = math.radians(spaceship_rotation[1])
+            pitch = math.radians(spaceship_rotation[0])
+            forward = np.array([math.cos(yaw) * math.cos(pitch), math.sin(yaw) * math.cos(pitch), math.sin(pitch)])
+            spaceship_velocity += forward * (spaceship_thrust * 0.025)
+    elif key == b's' or key == b'S':
+        if spaceship_exists:
+            yaw = math.radians(spaceship_rotation[1])
+            pitch = math.radians(spaceship_rotation[0])
+            back = -np.array([math.cos(yaw) * math.cos(pitch), math.sin(yaw) * math.cos(pitch), math.sin(pitch)])
+            spaceship_velocity += back * (spaceship_thrust * 0.025)
+    elif key == b'a' or key == b'A':
+        if spaceship_exists:
+            spaceship_rotation[1] -= 8.0
+    elif key == b'd' or key == b'D':
+        if spaceship_exists:
+            spaceship_rotation[1] += 8.0
+    elif key == b'e' or key == b'E':
+        # Pitch up
+        if spaceship_exists:
+            spaceship_rotation[0] += 6.0
+            spaceship_rotation[0] = min(spaceship_rotation[0], 85.0)  # Limit pitch
+    elif key == b'q' or key == b'Q':
+        if spaceship_exists:
+            spaceship_rotation[0] -= 6.0
+            spaceship_rotation[0] = max(spaceship_rotation[0], -85.0)  # Limit pitch
+    elif key == b'z' or key == b'Z':
+        if spaceship_exists:
+            spaceship_rotation[2] -= 10.0
+    elif key == b'c' or key == b'C':
+        # Roll right (moved C from camera center to roll control)
+        if spaceship_exists:
+            spaceship_rotation[2] += 10.0
+    elif key == b'x' or key == b'X':
+        if spaceship_exists:
+            spaceship_velocity *= 0.3 
+    elif key == b'g' or key == b'G':
+        spawn_spaceship_near_selected_planet()
+    elif key == b'l' or key == b'L':
+        if spaceship_exists:
+            spaceship_exists = False
+            print("Star Destroyer despawned")
+        else:
+            print("No spaceship to despawn")
+    elif key == b'h' or key == b'H':
+        camera_state['target'] = np.array([0.0, 0.0, 0.0])
+        camera_state['is_following_planet'] = False
+        print("Camera centered on origin, following disabled")
+
+    
+    #Shahid Galib
+    elif key == b'5':
+        camera_state['distance'] = max(50.0, camera_state['distance'] - 50.0)
+        print(f"Camera zoom in - Distance: {camera_state['distance']:.1f}")
+    elif key == b'6':
+        camera_state['distance'] = min(2000.0, camera_state['distance'] + 50.0)
+        print(f"Camera zoom out - Distance: {camera_state['distance']:.1f}")
+
+_index]['position'].copy()
+                print(f"Camera now following {planets[selected_planet_index]['name']}")
 def main():
     """Main function to initialize and run the simulation"""
     glutInit()
