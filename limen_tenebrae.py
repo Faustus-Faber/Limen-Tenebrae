@@ -1304,6 +1304,34 @@ def keyboard_listener(key, x, y):
 
 _index]['position'].copy()
                 print(f"Camera now following {planets[selected_planet_index]['name']}")
+
+def special_key_listener(key, x, y):
+    """Handle special key input (arrow keys)"""
+    global black_hole_mass, keys_locked
+
+    #Zarif
+    if key == GLUT_KEY_UP:
+        black_hole_mass += 100.0
+        
+    elif key == GLUT_KEY_DOWN:
+        black_hole_mass = max(100.0, black_hole_mass - 100.0)
+    
+    #Galib
+    elif key == GLUT_KEY_LEFT:
+        global selected_planet_index, camera_state
+        if planets:
+            selected_planet_index = (selected_planet_index - 1) % len(planets)
+            if camera_state['is_following_planet']:
+                camera_state['target'] = planets[selected_planet_index]['position'].copy()
+                print(f"Camera now following {planets[selected_planet_index]['name']}")
+            
+    elif key == GLUT_KEY_RIGHT:
+        if planets:
+            selected_planet_index = (selected_planet_index + 1) % len(planets)
+            if camera_state['is_following_planet']:
+                camera_state['target'] = planets[selected_planet_index]['position'].copy()
+                print(f"Camera now following {planets[selected_planet_index]['name']}")
+                
 # ============================================================================
 # MAIN DISPLAY AND LOOP FUNCTIONS
 # ============================================================================
